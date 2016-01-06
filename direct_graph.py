@@ -207,10 +207,13 @@ class DirectGraph:
 		distances = {u : 0}
 		while len(queue) > 0:
 			s = queue.pop(0)
+			d = distances[s] + 1
+			if len(self.nodes[s]['list']) <= 0:
+				continue
 			for j in self.nodes[s]["list"]:
 				if not j in distances:
 					queue.append(j)
-					distances[j] = distances[s] + 1
+					distances[j] = d
 				if j == v:
 					return distances[j]
 		return float('+inf')
@@ -248,96 +251,90 @@ class DirectGraph:
 			distances between v and every node reachable by this latter
 			using a BFS visit. 
 		'''
+		max = float('inf')
 		L = {}
-		D = {u: {} for u in self.nodes} # D[u][v] - dist between u and v
+		D = {u: defaultdict(lambda: max) for u in self.nodes} # D[u][v] - dist between u and v
+
+
+		for v in self.nodes:
+			queue = [v]
+			distances = {v : 0}
+			while len(queue) > 0:
+				curr = queue.pop(0)
+				d = distances[curr] + 1
+				if len(self.nodes[curr]['list']) <= 0:
+					continue
+				for next in self.nodes[curr]['list']:
+					if not next in distances:
+						queue.append(next)
+						distances[next] = d
+						if d < D[v][next]:
+							D[v][next] = d				
+
 		for u in self.nodes:
 			start = time.time()
 			reachable = 0.0
 			closeness = 0.0
 			for v in self.nodes:
-				if u == v:
-					continue
-				if u in D[v]:
-					reachable += 1.0
-					closeness += D[v][u]
-					continue
-				queue = [v]
-				distances = {v : 0}
-				while len(queue) > 0:
-					curr = queue.pop(0)
-					d = distances[curr] + 1
-					if len(self.nodes[curr]['list']) <= 0:
-						continue
-					for next in self.nodes[curr]['list']:
-						if not next in distances:
-							queue.append(next)
-							distances[next] = d
-							if not next in D[v]:
-								D[v][next] = d
-							elif d < D[v][next]:
-								D[v][next] = d
-						if next == u:
-							reachable += 1
-							closeness += d
-							queue = []
-							break
-
+				d = D[v][u]
+				if d < max:
+					reachable += 1
+					closeness += d
 			if closeness <= 0:
 				L[u] = 1
 			else:
 				L[u] = (reachable ** 2) / closeness
 			self.nodes[u]['lin'] = L[u]
 			self.nodes[u]['closeness'] = closeness
-			print("node {} {} {}".format(u, L[u], time.time() - start))
-			sys.stdout.flush()
+			
 		return L
 
 
 
-	def lin_indexFW(self):
-		# it includes Floyd-Warshall to compute all pairs distances for speeding up the computation
-		max = float('+inf')
-		lin = {}
+	# def lin_indexFW(self):
+	# 	# it includes Floyd-Warshall to compute all pairs distances
+	# 	max = float('+inf')
+	# 	lin = {}
 		
-		distances = {}
-		for i in self.nodes:
-			for j in self.nodes:
-				if not i in distances:
-					distances[i] = defaultdict(lambda: max)
-					distances[i][i] = 0
-				if not j in distances:
-					distances[j] = defaultdict(lambda: max)
-					distances[j][j] = 0
-				if self.has_edge(i, j):
-					distances[i][j] = 1
-				if self.has_edge(j, i):
-					distances[j][i] = 1
+	# 	distances = {}
+	# 	for i in self.nodes:
+	# 		for j in self.nodes:
+	# 			if not i in distances:
+	# 				distances[i] = defaultdict(lambda: max)
+	# 				distances[i][i] = 0
+	# 			if not j in distances:
+	# 				distances[j] = defaultdict(lambda: max)
+	# 				distances[j][j] = 0
+	# 			if self.has_edge(i, j):
+	# 				distances[i][j] = 1
+	# 			if self.has_edge(j, i):
+	# 				distances[j][i] = 1
 
 		
-		for k in self.nodes:
-			if len(self.nodes[k]['list']) == 0:
-				continue
-			for i in self.nodes:
-				for j in self.nodes:
-					if i == j or j in self.nodes[i]['list']:
-						continue
-					target_dist = distances[i][k] + distances[k][j]
-					if distances[i][j] > target_dist:
-						distances[i][j] = target_dist
+	# 	for k in self.nodes:
+	# 		if len(self.nodes[k]['list']) == 0:
+	# 			continue
+	# 		for i in self.nodes:
+	# 			for j in self.nodes:
+	# 				if i == j or j in self.nodes[i]['list']:
+	# 					continue
+	# 				target_dist = distances[i][k] + distances[k][j]
+	# 				if distances[i][j] > target_dist:
+	# 					distances[i][j] = target_dist
 
 		
-		for u in self.nodes:
-			num = den = 0
-			for v in self.nodes: 
-				if u == v or len(self.nodes[v]['list']) <= 0:
-					continue
-				vu = distances[v][u] # self.distance(v, u) #
-				if vu < max:
-					num += 1
-					den += vu
+	# 	for u in self.nodes:
+	# 		num = den = 0
+	# 		for v in self.nodes: 
+	# 			if u == v or len(self.nodes[v]['list']) <= 0:
+	# 				continue
+	# 			vu = distances[v][u] # self.distance(v, u) #
+	# 			if vu < max:
+	# 				num += 1
+	# 				den += vu
 
-			lin[u] = (num ** 2) / den if den > 0 else 1.0
-			self.nodes[u]['lin'] = lin[u]
+	# 		lin[u] = (num ** 2) / den if den > 0 else 1.0
+	# 		self.nodes[u]['lin'] = lin[u]
 
 		return lin
 

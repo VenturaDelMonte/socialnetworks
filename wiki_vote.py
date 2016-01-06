@@ -11,19 +11,19 @@ print('# Edges = %d\tAverage Clustering = %f' % (graph.countEdges(), graph.avera
 
 sys.stdout.flush()
 
-# print('# Eigenvector Centrality...')
-# diffsum, cscores = graph.eigenvector_centrality()
-# print(diffsum)
-# print(cscores)
-# top_eigenc = [a for a, b in topk(cscores, seed)]
-# print('# Done')
-# sys.stdout.flush()
-# print('# Betweennes centrality...')
-# bet = graph.betweenness()
-# print(bet)
-# top_bet = [a for a, b in topk(bet, seed)]
-# print('# Done')
-# sys.stdout.flush()
+print('# Eigenvector Centrality...')
+diffsum, cscores = graph.eigenvector_centrality()
+print(diffsum)
+print(cscores)
+top_eigenc = [a for a, b in topk(cscores, seed)]
+print('# Done')
+sys.stdout.flush()
+print('# Betweennes centrality...')
+bet = graph.betweenness()
+print(bet)
+top_bet = [a for a, b in topk(bet, seed)]
+print('# Done')
+sys.stdout.flush()
 print("# Lin's index...")
 lin = graph.lin_index()
 print(lin)
