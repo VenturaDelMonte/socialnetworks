@@ -469,7 +469,7 @@ class DirectGraph:
 				dest = xt * line + yt
 				if xt * line + yt > n - 1:
 					continue 
-				if xt != i and yt != j and dest not in graph[target] and random.random() <= (1.0 / (euclidean_distance((xt, yt), (i,j))**q)):
+				if xt != i and yt != j and dest not in graph[target] and random.random() <= (1.0 / (euclidean_distance((xt, yt), (i,j)) ** q)):
 					graph[target].add(dest)
 					m -= 1
 					weak_ties -= 1
@@ -481,20 +481,38 @@ class DirectGraph:
 	def preferentialAttachment(n, d, p):
 		'''
 		Barabási–Albert preferential attachment model - Emergence of scaling in random networks
+
+		In a Prefential Attachment Graph when a node j is created, its out-links are produced in the following way:
+    		- with a probability p, choose a node i uniformly at random and creates an edge from j to i
+    		- with a probability 1-p, choose a node l with a proability that is proportional to the l's current in-degree and creates an edge from j to l.
+    
+    	This is the idea behind the 'Rich get Richer' phenomen
+
 		'''
+
+		# https://github.com/emanuelepesce/NetworksSimulator/blob/master/source/DirectedPreferentialAttachment.py
 		graph = DirectGraph()
 		for v in range(n):
 			graph.add_vertex(v)
-			self.nodes[v]['in'] = 0
+		I = []
+		for v in range(n):
 			for i in range(d):
 				if random.random() <= p:
-					u = random.uniform(0, v)
-					graph.add_edge(v, u)
-					if not 'in' in self.nodes[u]:
-						self.nodes[v]['in'] = 0
-					self.nodes[u]['in'] += 1
+					j = v
+					while True:
+						j = random.uniform(0, v)
+						if v != j:
+							break
+					graph.add_edge(v, j)
+					I.append(j)
 				else:
-
+					l = v
+					while True:
+						l = random.choice(I)
+						if l != v:
+							break
+					graph.add_edge(v, l)
+					I.append(l)
 		return graph
 
 	@staticmethod		
