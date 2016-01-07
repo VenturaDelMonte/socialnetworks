@@ -39,6 +39,7 @@ class DirectGraph:
 	
 	def __init__(self, graph = {}):
 		self.nodes = graph
+		self.__edgesCount = 0
 		self.__isWS = False
 
 	def setWS(self, mode):
@@ -56,6 +57,7 @@ class DirectGraph:
 		self.add_vertex(fromId)
 		self.add_vertex(toId)
 		self.nodes[fromId]["list"].add(toId)
+		self.__edgesCount += 1
 
 	def countTriangles(self):
 		triangles = 0
@@ -68,10 +70,10 @@ class DirectGraph:
 		return triangles
 
 	def countEdges(self):
-		edges = 0
-		for k in self.nodes:
-			edges += len(self.nodes[k]["list"])
-		return edges
+		return self.__edgesCount
+
+	def size(self):
+		return len(self.nodes), self.__edgesCount
 
 	def diameter(self):
 		n = len(self.nodes)
@@ -136,10 +138,14 @@ class DirectGraph:
 			sigma = {}
 			distances = {}
 
-			for j in self.nodes:
-				P[j] = [] # j's parents list
-				sigma[j] = 0
-				distances[j] = -1
+			# for j in self.nodes:
+			# 	P[j] = [] # j's parents list
+			# 	sigma[j] = 0
+			# 	distances[j] = -1
+
+			P = defaultdict(lambda: [])	
+			sigma = defaultdict(lambda: 0)	
+			distances = defaultdict(lambda: -1)	 
 
 			sigma[i] = 1
 			queue = [i]
@@ -162,12 +168,13 @@ class DirectGraph:
 			#	print('Visited: ', visited)
 			#	print('i: ', i, ' Parents: ', P)
 
-			delta = {j: 0 for j in self.nodes}
+			delta = defaultdict(lambda: 0) #{j: 0 for j in self.nodes}
 			# visited returns vertices in order of non-increasing distance from s
 			while len(visited) > 0:
 				w = visited.pop()
-				for v in P[w]:
-					delta[v] += (float(sigma[v]) / sigma[w]) * (1.0 + delta[w])
+				if len(P[w]) > 0:
+					for v in P[w]:
+						delta[v] += (float(sigma[v]) / sigma[w]) * (1.0 + delta[w])
 				if w != i:
 					cb[w] += delta[w]
 		return cb
@@ -251,42 +258,36 @@ class DirectGraph:
 			distances between v and every node reachable by this latter
 			using a BFS visit. 
 		'''
-		max = float('inf')
 		L = {}
-		D = {u: defaultdict(lambda: max) for u in self.nodes} # D[u][v] - dist between u and v
-
+		D = {} # D[u][v] - dist between u and v
 
 		for v in self.nodes:
+			D[v] = {v : 0}
 			queue = [v]
-			distances = {v : 0}
 			while len(queue) > 0:
 				curr = queue.pop(0)
-				d = distances[curr] + 1
+				d = D[v][curr] + 1
 				if len(self.nodes[curr]['list']) <= 0:
 					continue
 				for next in self.nodes[curr]['list']:
-					if not next in distances:
+					if not next in D[v]:
 						queue.append(next)
-						distances[next] = d
-						if d < D[v][next]:
-							D[v][next] = d				
+						D[v][next] = d
 
 		for u in self.nodes:
-			start = time.time()
 			reachable = 0.0
 			closeness = 0.0
 			for v in self.nodes:
-				d = D[v][u]
-				if d < max:
+				if v != u and u in D[v]:
 					reachable += 1
-					closeness += d
+					closeness += D[v][u]
 			if closeness <= 0:
 				L[u] = 1
 			else:
 				L[u] = (reachable ** 2) / closeness
 			self.nodes[u]['lin'] = L[u]
 			self.nodes[u]['closeness'] = closeness
-			
+			#print("node {} c={} l={} r={}".format(u, closeness, L[u], reachable))
 		return L
 
 
@@ -336,16 +337,16 @@ class DirectGraph:
 	# 		lin[u] = (num ** 2) / den if den > 0 else 1.0
 	# 		self.nodes[u]['lin'] = lin[u]
 
-		return lin
+	#	return lin
 
-	def ltm_round(graph, A, neg_A):
+	def __ltm_round(self, A, neg_A):
 		activated = set()
 		for v in neg_A:
 			sum = 0.0
 			for j in self.nodes[v]["list"]:
 				if j in A:
-					sum += self.nodes[j]['threshold']
-			if sum > self.nodes[v]['threshold']:
+					sum += self.nodes[j]['LTMthreshold']
+			if sum > self.nodes[v]['LTMthreshold']:
 				activated.add(v)
 		return activated
 
@@ -354,22 +355,23 @@ class DirectGraph:
 		'''
 		Granovetter - Threshold models of collective behavior.
 		'''
-
+		vertices = len(self.nodes)
 		for u in self.nodes:
-			self.nodes[u]['threshold'] = random.uniform(0.0, 1.0)
+			self.nodes[u]['LTMthreshold'] = random.uniform(0.0, 1.0)
 
 		A = set(seeds)
 		neg_A = set(self.nodes.keys()) - A
 
-		while rounds > 0 and len(A) < len(self.nodes):
-			activated = ltm_round(self.nodes, A)
+		round = 0
+		while round < rounds and len(A) < vertices:
+			activated = self.__ltm_round(A, neg_A)
 			if len(activated) <= 0:
 				break
-			A = A | activated
-			neg_A = neg_A - activated
-			rounds -= 1
+			A |= activated
+			neg_A -= activated
+			round += 1
 
-		return A, neg_A
+		return A, neg_A, round
 
 
 
@@ -473,6 +475,26 @@ class DirectGraph:
 					weak_ties -= 1
 					if m == 0:
 						return graph
+		return graph
+
+	@staticmethod
+	def preferentialAttachment(n, d, p):
+		'''
+		Barabási–Albert preferential attachment model - Emergence of scaling in random networks
+		'''
+		graph = DirectGraph()
+		for v in range(n):
+			graph.add_vertex(v)
+			self.nodes[v]['in'] = 0
+			for i in range(d):
+				if random.random() <= p:
+					u = random.uniform(0, v)
+					graph.add_edge(v, u)
+					if not 'in' in self.nodes[u]:
+						self.nodes[v]['in'] = 0
+					self.nodes[u]['in'] += 1
+				else:
+
 		return graph
 
 	@staticmethod		
