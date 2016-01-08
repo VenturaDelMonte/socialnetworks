@@ -2,6 +2,9 @@ from direct_graph import DirectGraph
 from direct_graph import topk
 import sys
 import matplotlib.pyplot as plt
+import random
+from datetime import datetime
+
 
 def Run_LTM(graph, seeds, rounds, centrality):
 	v, e = graph.size()
@@ -12,40 +15,9 @@ def Run_LTM(graph, seeds, rounds, centrality):
 
 
 if __name__ == '__main__':
-		
+	random.seed(datetime.now())	
 	rounds = 10
 	seed = 100
-	graph = DirectGraph.from_filename('wiki-Vote.txt')
-
-	print('# Edges = %d\tAverage Clustering = %f' % (graph.countEdges(), graph.average_clustering()))
-	sys.stdout.flush()
-
-	print('# Eigenvector Centrality...')
-	diffsum, cscores = graph.eigenvector_centrality()
-	# print(diffsum)
-	# print(cscores)
-	top_eigenc = [a for a, b in topk(cscores, seed)]
-	print(top_eigenc)
-	print('# Done')
-	sys.stdout.flush()
-
-	print('# Betweennes centrality...')
-	bet = graph.betweenness()
-	# print(bet)
-	top_bet = [a for a, b in topk(bet, seed)]
-	print(top_bet)
-	print('# Done')
-	sys.stdout.flush()
-
-	print("# Lin's index...")
-	lin = graph.lin_index()
-	#print(lin)
-	top_lin = [a for a, b in topk(lin, seed)]
-	print(top_lin)
-	print('# Done')
-	sys.stdout.flush()
-
-
 
 	lin_max_values = []
 	eigenc_max_values = []
@@ -53,7 +25,64 @@ if __name__ == '__main__':
 
 	
 	for i in range(100):
+
+		NODES = 7115
+		min_edges = 75000
+		max_edges = 125000
+		incr = 0.001
+		p = 0.001 # probability
 		seed = 100
+
+		graph = None
+		while p > 0:
+			print("generating graph with N={} p={}".format(NODES, p))
+			graph = DirectGraph.randomDirectGraph(NODES, p)
+			edges = graph.size()[1]
+			print("prob={} edges={}".format(p, edges))
+			if edges >= min_edges and edges <= max_edges:
+				break
+				# avgc = graph.average_clustering()
+				# print("** avgc={}".format(avgc))
+				# if avgc >= 0.1 and avgc <= 0.2:
+				# 	break
+				# elif avgc > 0.2:
+				# 	p += ((max_edges - edges) / min_edges * 10.0) * incr
+				# else:
+				# 	p += ((min_edges - edges) / min_edges * 10.0) * incr
+			elif edges > max_edges:
+				p += ((max_edges - edges) / min_edges) * incr
+			else:
+				p += ((min_edges - edges) / min_edges) * incr
+			sys.stdout.flush()
+
+		print('# Edges = %d\tAverage Clustering = %f' % (graph.countEdges(), graph.average_clustering()))
+		sys.stdout.flush()
+
+		print('# Eigenvector Centrality...')
+		diffsum, cscores = graph.eigenvector_centrality()
+		# print(diffsum)
+		# print(cscores)
+		top_eigenc = [a for a, b in topk(cscores, seed)]
+		print(top_eigenc)
+		print('# Done')
+		sys.stdout.flush()
+
+		print('# Betweennes centrality...')
+		bet = graph.betweenness()
+		# print(bet)
+		top_bet = [a for a, b in topk(bet, seed)]
+		print(top_bet)
+		print('# Done')
+		sys.stdout.flush()
+
+		print("# Lin's index...")
+		lin = graph.lin_index()
+		#print(lin)
+		top_lin = [a for a, b in topk(lin, seed)]
+		print(top_lin)
+		print('# Done')
+		sys.stdout.flush()
+
 		max_lin_influenced = Run_LTM(graph, top_lin[:seed], rounds, 'Lin')[0]
 		max_eigenc_influenced = Run_LTM(graph, top_eigenc[:seed], rounds, 'Eigenvector')[0]
 		max_bet_influenced = Run_LTM(graph, top_bet[:seed], rounds, 'Betweenness')[0]
@@ -104,7 +133,6 @@ if __name__ == '__main__':
 	sys.stdout.flush()
 
 
-	max_adopters = (lin_max_values, eigenc_max_values, bet_max_values)
 
 	fig, ax = plt.subplots()
 
@@ -127,5 +155,5 @@ if __name__ == '__main__':
 
 	plt.tight_layout()
 
-	plt.savefig('test.png')
+	plt.savefig('rd.png')
 	plt.show()

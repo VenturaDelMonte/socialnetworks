@@ -54,10 +54,11 @@ class DirectGraph:
 			self.nodes[vid]["list"] = set()
 
 	def add_edge(self, fromId, toId):
-		self.add_vertex(fromId)
-		self.add_vertex(toId)
-		self.nodes[fromId]["list"].add(toId)
-		self.__edgesCount += 1
+		if not self.has_edge(fromId, toId):
+			self.add_vertex(fromId)
+			self.add_vertex(toId)
+			self.nodes[fromId]["list"].add(toId)
+			self.__edgesCount += 1
 
 	def countTriangles(self):
 		triangles = 0
@@ -109,11 +110,14 @@ class DirectGraph:
 		for i in self.nodes:
 			triangles = 0
 			neighbors = self.nodes[i]["list"]
-			neighbors_count = len(self.nodes[i]["list"])
+			neighbors_count = len(neighbors)
 			pairs = neighbors_count * (neighbors_count - 1) / 2 #number of pairs of neighbors of node i
-			for t in itertools.permutations(neighbors, 2):
+			for t in itertools.combinations(neighbors, 2):
+				#number of pairs of neighbors of node i that are adjacent
 				if self.has_edge(t[0], t[1]):
-					triangles += 1 #number of pairs of neighbors of node i that are adjacent
+					triangles += 1 
+				if self.has_edge(t[1], t[0]):
+					triangles += 1 
 			if pairs > 0:
 				total += triangles / pairs # triangles / neighbors is the individual clustering of node i
 		return total / n #the average clustering is the average of individual clusterings
@@ -393,6 +397,8 @@ class DirectGraph:
 					continue
 				if random.random() <= p:
 					graph.add_edge(i, j)
+				if random.random() <= p:
+					graph.add_edge(j, i)
 		return graph
 
 	@staticmethod
@@ -489,8 +495,6 @@ class DirectGraph:
     	This is the idea behind the 'Rich get Richer' phenomen
 
 		'''
-
-		# https://github.com/emanuelepesce/NetworksSimulator/blob/master/source/DirectedPreferentialAttachment.py
 		graph = DirectGraph()
 		for v in range(n):
 			graph.add_vertex(v)
@@ -505,7 +509,7 @@ class DirectGraph:
 							break
 					graph.add_edge(v, j)
 					I.append(j)
-				else:
+				elif len(I) > 1:
 					l = v
 					while True:
 						l = random.choice(I)
@@ -559,6 +563,7 @@ class DirectGraph:
 					if m == 0:
 						break
 
+		graph.__edgesCount = tot - m
 		return graph, tot - m	
 
 	@staticmethod	

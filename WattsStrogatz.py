@@ -2,6 +2,9 @@ from direct_graph import DirectGraph
 from direct_graph import topk
 import sys
 import matplotlib.pyplot as plt
+import random
+from datetime import datetime
+
 
 def Run_LTM(graph, seeds, rounds, centrality):
 	v, e = graph.size()
@@ -12,40 +15,9 @@ def Run_LTM(graph, seeds, rounds, centrality):
 
 
 if __name__ == '__main__':
-		
+	random.seed(datetime.now())	
 	rounds = 10
 	seed = 100
-	graph = DirectGraph.from_filename('wiki-Vote.txt')
-
-	print('# Edges = %d\tAverage Clustering = %f' % (graph.countEdges(), graph.average_clustering()))
-	sys.stdout.flush()
-
-	print('# Eigenvector Centrality...')
-	diffsum, cscores = graph.eigenvector_centrality()
-	# print(diffsum)
-	# print(cscores)
-	top_eigenc = [a for a, b in topk(cscores, seed)]
-	print(top_eigenc)
-	print('# Done')
-	sys.stdout.flush()
-
-	print('# Betweennes centrality...')
-	bet = graph.betweenness()
-	# print(bet)
-	top_bet = [a for a, b in topk(bet, seed)]
-	print(top_bet)
-	print('# Done')
-	sys.stdout.flush()
-
-	print("# Lin's index...")
-	lin = graph.lin_index()
-	#print(lin)
-	top_lin = [a for a, b in topk(lin, seed)]
-	print(top_lin)
-	print('# Done')
-	sys.stdout.flush()
-
-
 
 	lin_max_values = []
 	eigenc_max_values = []
@@ -53,7 +25,46 @@ if __name__ == '__main__':
 
 	
 	for i in range(100):
+
+		NODES = 7115
+		min_edges = 75000
+		max_edges = 125000
+		incr = 0.001
+		p = 0.001 # probability
 		seed = 100
+		radius = 2
+		weak_ties = [i*5 for i in range(0, 3)]
+
+		graph, edges = DirectGraph.WS2DGraph(NODES, random.randint(min_edges, max_edges), radius, weak_ties)
+
+		print('# Edges = %d\tAverage Clustering = %f' % (graph.countEdges(), graph.average_clustering()))
+		sys.stdout.flush()
+
+		print('# Eigenvector Centrality...')
+		diffsum, cscores = graph.eigenvector_centrality()
+		# print(diffsum)
+		# print(cscores)
+		top_eigenc = [a for a, b in topk(cscores, seed)]
+		print(top_eigenc)
+		print('# Done')
+		sys.stdout.flush()
+
+		print('# Betweennes centrality...')
+		bet = graph.betweenness()
+		# print(bet)
+		top_bet = [a for a, b in topk(bet, seed)]
+		print(top_bet)
+		print('# Done')
+		sys.stdout.flush()
+
+		print("# Lin's index...")
+		lin = graph.lin_index()
+		#print(lin)
+		top_lin = [a for a, b in topk(lin, seed)]
+		print(top_lin)
+		print('# Done')
+		sys.stdout.flush()
+
 		max_lin_influenced = Run_LTM(graph, top_lin[:seed], rounds, 'Lin')[0]
 		max_eigenc_influenced = Run_LTM(graph, top_eigenc[:seed], rounds, 'Eigenvector')[0]
 		max_bet_influenced = Run_LTM(graph, top_bet[:seed], rounds, 'Betweenness')[0]
@@ -104,7 +115,6 @@ if __name__ == '__main__':
 	sys.stdout.flush()
 
 
-	max_adopters = (lin_max_values, eigenc_max_values, bet_max_values)
 
 	fig, ax = plt.subplots()
 
@@ -127,5 +137,5 @@ if __name__ == '__main__':
 
 	plt.tight_layout()
 
-	plt.savefig('test.png')
+	plt.savefig('ws.png')
 	plt.show()
