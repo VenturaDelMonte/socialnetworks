@@ -153,9 +153,9 @@ if __name__ == '__main__':
 
 	opacity = 0.4
 
-	max_lin = sorted(lin_max_values, key=lambda t: t[1], reverse=True)[0]
-	max_eigenc = sorted(eigenc_max_values, key=lambda t: t[1], reverse=True)[0]
-	max_bet = sorted(bet_max_values, key=lambda t: t[1], reverse=True)[0]
+	max_lin = sorted(lin_max_values, key=lambda t: t[1], reverse=True)[0][1]
+	max_eigenc = sorted(eigenc_max_values, key=lambda t: t[1], reverse=True)[0][1]
+	max_bet = sorted(bet_max_values, key=lambda t: t[1], reverse=True)[0][1]
 
 	rects1 = plt.bar(1, max_lin, width=bar_width, alpha=opacity, color='b', label='Lin')
 
