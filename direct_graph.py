@@ -502,11 +502,9 @@ class DirectGraph:
 		for v in range(n):
 			for i in range(d):
 				if random.random() <= p:
-					j = v
-					while True:
-						j = random.uniform(0, v)
-						if v != j:
-							break
+					j = random.uniform(0, v)
+					if v == j:
+						continue
 					graph.add_edge(v, j)
 					I.append(j)
 				elif len(I) > 1:
