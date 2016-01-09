@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import random
 from datetime import datetime
 import concurrent.futures
+import time
 
 
 
@@ -17,6 +18,7 @@ def Run_LTM(graph, seeds, rounds, centrality):
 	return len(influenced), len(kept), steps
 
 def worker_task(i):
+	start_time = time.time()
 	NODES = 7115
 	min_edges = 75000
 	max_edges = 125000
@@ -115,10 +117,11 @@ def worker_task(i):
 	#eigenc_max_values.append((eigenc_max_seed, max_eigenc_influenced))
 	#bet_max_values.append((bet_max_seed, max_bet_influenced))
 	sys.stdout.flush()
-	print("# iteration %d done " % (i+1))
+	print("# iteration %d done in %f" % (i+1, time.time() - start_time))
 	return [(lin_max_seed, max_lin_influenced), (eigenc_max_seed, max_eigenc_influenced), (bet_max_seed, max_bet_influenced)]
 
 if __name__ == '__main__':
+	start = time.time()
 	random.seed(datetime.now())	
 	rounds = 10
 	seed = 100
@@ -128,7 +131,7 @@ if __name__ == '__main__':
 	bet_max_values = []
 
 	
-	with concurrent.futures.ProcessPoolExecutor(max_workers=8) as executor:
+	with concurrent.futures.ProcessPoolExecutor() as executor:
 		futures = { executor.submit(worker_task, i) for i in range(8) }
 		for future in concurrent.futures.as_completed(futures):
 			ret = future.result()
@@ -171,3 +174,5 @@ if __name__ == '__main__':
 
 	plt.savefig('rd.png')
 	plt.show()
+
+	print("program complete in {}".format(time.time() - start))
