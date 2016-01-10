@@ -42,6 +42,14 @@ class DirectGraph:
 		self.__edgesCount = 0
 		self.__isWS = False
 
+	def __enter__(self):
+		return self
+
+	def __exit__(self, exc_type, exc_value, traceback):
+		self.nodes = None
+		self.__edgesCount = None
+		self.__isWS = None
+
 	def setWS(self, mode):
 		self.__isWS = mode
 
@@ -134,6 +142,15 @@ class DirectGraph:
 
 
 	def betweenness(self, verbose = False):
+		'''
+			Girvan-Newman algorithm
+			####
+			this is an indicator of a node's centrality in a network.
+			It is equal to the number of shortest paths from all vertices to all others
+			that pass through that node. A node with high betweenness centrality has
+			a large influence on the transfer of items through the network, 
+			under the assumption that item transfer follows the shortest paths.
+		'''
 		cb = {i : 0 for i in self.nodes} #betweenness centrality
 
 		for i in self.nodes: #check the max distance for every node i
@@ -155,23 +172,21 @@ class DirectGraph:
 			queue = [i]
 			distances[i] = 0
 
+			# BFS
 			while len(queue) > 0:
 				s = queue.pop(0)
 				visited.append(s)
-				for j in self.nodes[s]["list"]: # foreach neighbor w of v do
+				for j in self.nodes[s]["list"]: # foreach neighbor j of s do
 					# j found for the first time?
 					if distances[j] < 0:
 						queue.append(j)
 						distances[j] = distances[s] + 1
-					# shortest path to w via v?
+					# shortest path to j via s?
 					if distances[j] == distances[s] + 1:
-						sigma[j] = sigma[j] + sigma[s]
+						sigma[j] += sigma[s]
 						P[j].append(s)
-			#if verbose:
-			#	print('Sigma: ', sigma
-			#	print('Visited: ', visited)
-			#	print('i: ', i, ' Parents: ', P)
-
+			
+			# bottom-up
 			delta = defaultdict(lambda: 0) #{j: 0 for j in self.nodes}
 			# visited returns vertices in order of non-increasing distance from s
 			while len(visited) > 0:
@@ -185,12 +200,17 @@ class DirectGraph:
 
 
 	def eigenvector_centrality(self, epsilon = 1e-03):
-		
+		'''
+			Eigenvector centrality is a measure of the influence of a node in a network. 
+			It assigns relative scores to all nodes in the network based on the concept 
+			that connections to high-scoring nodes contribute more to the score of the node
+			in question than equal connections to low-scoring nodes.
+		'''
 		diff_sum = float('+inf')
 		keys = self.nodes.keys()
 		cscores = dict.fromkeys(keys, 1.0)
 
-		i = 0
+		#i = 0
 		while (diff_sum >= epsilon):
 			# print i, '. eigenvector_centrality: current error = ', diff_sum
 			old_cscores_summation = sum(cscores.values())
@@ -209,7 +229,7 @@ class DirectGraph:
 				cscores[node] = tmp[node] / max_neigh_cscore
 
 			diff_sum = abs(sum(cscores.values()) - old_cscores_summation)
-			i += 1
+			#i += 1
 
 		return diff_sum, cscores
 
@@ -258,7 +278,7 @@ class DirectGraph:
 			These apparently innocuous adjustments, however, introduce a
 			strong bias toward nodes with a small coreachable set.
 			----------------------------------------------------------------
-			the trick to speed up this algorithm consists of storing the
+			the trick to speed up this method consists of storing the
 			distances between v and every node reachable by this latter
 			using a BFS visit. 
 		'''
@@ -500,7 +520,7 @@ class DirectGraph:
 		for v in range(n):
 			for i in range(d):
 				if random.random() <= p:
-					j = random.randint(0, v)
+					j = random.randint(0, n - 1)
 					if v == j:
 						continue
 					graph.add_edge(v, j)
@@ -560,7 +580,7 @@ class DirectGraph:
 						break
 
 		graph.__edgesCount = tot - m
-		return graph, tot - m	
+		return graph
 
 	@staticmethod	
 	def from_filename(filename, mode = 'd'):
