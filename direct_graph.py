@@ -486,8 +486,6 @@ class DirectGraph:
 	@staticmethod
 	def preferentialAttachment(n, d, p):
 		'''
-		Barabási–Albert preferential attachment model - Emergence of scaling in random networks
-
 		In a Prefential Attachment Graph when a node j is created, its out-links are produced in the following way:
     		- with a probability p, choose a node i uniformly at random and creates an edge from j to i
     		- with a probability 1-p, choose a node l with a proability that is proportional to the l's current in-degree and creates an edge from j to l.

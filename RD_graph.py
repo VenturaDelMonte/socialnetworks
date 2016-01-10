@@ -19,6 +19,7 @@ def Run_LTM(graph, seeds, rounds, centrality):
 
 def worker_task(i):
 	start_time = time.time()
+	rounds = 10
 	NODES = 7115
 	min_edges = 75000
 	max_edges = 125000
@@ -123,7 +124,6 @@ def worker_task(i):
 if __name__ == '__main__':
 	start = time.time()
 	random.seed(datetime.now())	
-	rounds = 10
 	seed = 100
 
 	lin_max_values = []
@@ -131,8 +131,8 @@ if __name__ == '__main__':
 	bet_max_values = []
 
 	
-	with concurrent.futures.ProcessPoolExecutor() as executor:
-		futures = { executor.submit(worker_task, i) for i in range(8) }
+	with concurrent.futures.ProcessPoolExecutor(5) as executor:
+		futures = { executor.submit(worker_task, i) for i in range(100) }
 		for future in concurrent.futures.as_completed(futures):
 			ret = future.result()
 			lin_max_values.append(ret[0])
