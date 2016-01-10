@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 import random
 from datetime import datetime
 import time
+import concurrent.futures
+
 
 def Run_LTM(graph, seeds, rounds, centrality):
 	v, e = graph.size()
@@ -15,6 +17,8 @@ def Run_LTM(graph, seeds, rounds, centrality):
 
 def worker_task(i):
 	start_time = time.time()
+	rounds = 10
+
 	print("# iteration %d" % (i+1))
 	NODES = 7115
 	min_edges = 75000
@@ -102,7 +106,7 @@ def worker_task(i):
 if __name__ == '__main__':
 	start = time.time()
 	random.seed(datetime.now())	
-	rounds = 10
+	
 	seed = 100
 
 	lin_max_values = []

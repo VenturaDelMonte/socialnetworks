@@ -500,7 +500,7 @@ class DirectGraph:
 		for v in range(n):
 			for i in range(d):
 				if random.random() <= p:
-					j = random.uniform(0, v)
+					j = random.randint(0, v)
 					if v == j:
 						continue
 					graph.add_edge(v, j)
