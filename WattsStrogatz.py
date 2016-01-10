@@ -4,7 +4,7 @@ import sys
 import matplotlib.pyplot as plt
 import random
 from datetime import datetime
-
+import time
 
 def Run_LTM(graph, seeds, rounds, centrality):
 	v, e = graph.size()
@@ -13,8 +13,94 @@ def Run_LTM(graph, seeds, rounds, centrality):
 	print("** influenced(%d) kept(%d) steps(%d)" % (len(influenced), len(kept), steps))
 	return len(influenced), len(kept), steps
 
+def worker_task(i):
+	start_time = time.time()
+	print("# iteration %d" % (i+1))
+	NODES = 7115
+	min_edges = 75000
+	max_edges = 125000
+	incr = 0.001
+	p = 0.001 # probability
+	seed = 100
+	radius = 2
+	weak_ties = [i*5 for i in range(0, 3)]
+
+	graph, edges = DirectGraph.WS2DGraph(NODES, random.randint(min_edges, max_edges), radius, weak_ties)
+
+	print('# Edges = %d\tAverage Clustering = %f' % (graph.countEdges(), graph.average_clustering()))
+	sys.stdout.flush()
+
+	print('# Eigenvector Centrality...')
+	diffsum, cscores = graph.eigenvector_centrality()
+	# print(diffsum)
+	# print(cscores)
+	top_eigenc = [a for a, b in topk(cscores, seed)]
+	print(top_eigenc)
+	print('# Done')
+	sys.stdout.flush()
+
+	print('# Betweennes centrality...')
+	bet = graph.betweenness()
+	# print(bet)
+	top_bet = [a for a, b in topk(bet, seed)]
+	print(top_bet)
+	print('# Done')
+	sys.stdout.flush()
+
+	print("# Lin's index...")
+	lin = graph.lin_index()
+	#print(lin)
+	top_lin = [a for a, b in topk(lin, seed)]
+	print(top_lin)
+	print('# Done')
+	sys.stdout.flush()
+
+	max_lin_influenced = Run_LTM(graph, top_lin[:seed], rounds, 'Lin')[0]
+	max_eigenc_influenced = Run_LTM(graph, top_eigenc[:seed], rounds, 'Eigenvector')[0]
+	max_bet_influenced = Run_LTM(graph, top_bet[:seed], rounds, 'Betweenness')[0]
+	lin_max_seed = seed
+	eigenc_max_seed = seed
+	bet_max_seed = seed
+
+	
+	while seed > 0:
+		seed -= 5
+		influenced_lin = Run_LTM(graph, top_lin[:seed], rounds, 'Lin')[0]
+		if max_lin_influenced <= influenced_lin:
+			max_lin_influenced = influenced_lin
+			lin_max_seed = seed
+		else:
+			break
+			
+	seed = 100
+	while seed > 0:
+		seed -= 5
+		influenced_eigenc = Run_LTM(graph, top_eigenc[:seed], rounds, 'Eigenvector')[0]
+		if max_eigenc_influenced <= influenced_eigenc:
+			max_eigenc_influenced = influenced_eigenc
+			eigenc_max_seed = seed
+		else:
+			break
+			 
+	seed = 100
+	while seed > 0:
+		seed -= 5
+		influenced_bet = Run_LTM(graph, top_bet[:seed], rounds, 'Betweenness')[0]
+		if max_bet_influenced <= influenced_bet:
+			max_bet_influenced = influenced_bet
+			bet_max_seed = seed
+		else:
+			break
+	
+	#lin_max_values.append((lin_max_seed, max_lin_influenced))
+	#eigenc_max_values.append((eigenc_max_seed, max_eigenc_influenced))
+	#bet_max_values.append((bet_max_seed, max_bet_influenced))
+	sys.stdout.flush()
+	print("# iteration %d done in %f" % (i+1, time.time() - start_time))
+	return [(lin_max_seed, max_lin_influenced), (eigenc_max_seed, max_eigenc_influenced), (bet_max_seed, max_bet_influenced)]
 
 if __name__ == '__main__':
+	start = time.time()
 	random.seed(datetime.now())	
 	rounds = 10
 	seed = 100
@@ -24,91 +110,7 @@ if __name__ == '__main__':
 	bet_max_values = []
 
 	
-	with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
-		def worker_task(i):
-			print("# iteration %d" % (i+1))
-			NODES = 7115
-			min_edges = 75000
-			max_edges = 125000
-			incr = 0.001
-			p = 0.001 # probability
-			seed = 100
-			radius = 2
-			weak_ties = [i*5 for i in range(0, 3)]
-
-			graph, edges = DirectGraph.WS2DGraph(NODES, random.randint(min_edges, max_edges), radius, weak_ties)
-
-			print('# Edges = %d\tAverage Clustering = %f' % (graph.countEdges(), graph.average_clustering()))
-			sys.stdout.flush()
-
-			print('# Eigenvector Centrality...')
-			diffsum, cscores = graph.eigenvector_centrality()
-			# print(diffsum)
-			# print(cscores)
-			top_eigenc = [a for a, b in topk(cscores, seed)]
-			print(top_eigenc)
-			print('# Done')
-			sys.stdout.flush()
-
-			print('# Betweennes centrality...')
-			bet = graph.betweenness()
-			# print(bet)
-			top_bet = [a for a, b in topk(bet, seed)]
-			print(top_bet)
-			print('# Done')
-			sys.stdout.flush()
-
-			print("# Lin's index...")
-			lin = graph.lin_index()
-			#print(lin)
-			top_lin = [a for a, b in topk(lin, seed)]
-			print(top_lin)
-			print('# Done')
-			sys.stdout.flush()
-
-			max_lin_influenced = Run_LTM(graph, top_lin[:seed], rounds, 'Lin')[0]
-			max_eigenc_influenced = Run_LTM(graph, top_eigenc[:seed], rounds, 'Eigenvector')[0]
-			max_bet_influenced = Run_LTM(graph, top_bet[:seed], rounds, 'Betweenness')[0]
-			lin_max_seed = seed
-			eigenc_max_seed = seed
-			bet_max_seed = seed
-
-			
-			while seed > 0:
-				seed -= 5
-				influenced_lin = Run_LTM(graph, top_lin[:seed], rounds, 'Lin')[0]
-				if max_lin_influenced <= influenced_lin:
-					max_lin_influenced = influenced_lin
-					lin_max_seed = seed
-				else:
-					break
-					
-			seed = 100
-			while seed > 0:
-				seed -= 5
-				influenced_eigenc = Run_LTM(graph, top_eigenc[:seed], rounds, 'Eigenvector')[0]
-				if max_eigenc_influenced <= influenced_eigenc:
-					max_eigenc_influenced = influenced_eigenc
-					eigenc_max_seed = seed
-				else:
-					break
-					 
-			seed = 100
-			while seed > 0:
-				seed -= 5
-				influenced_bet = Run_LTM(graph, top_bet[:seed], rounds, 'Betweenness')[0]
-				if max_bet_influenced <= influenced_bet:
-					max_bet_influenced = influenced_bet
-					bet_max_seed = seed
-				else:
-					break
-			
-			#lin_max_values.append((lin_max_seed, max_lin_influenced))
-			#eigenc_max_values.append((eigenc_max_seed, max_eigenc_influenced))
-			#bet_max_values.append((bet_max_seed, max_bet_influenced))
-			sys.stdout.flush()
-			return [(lin_max_seed, max_lin_influenced), (eigenc_max_seed, max_eigenc_influenced), (bet_max_seed, max_bet_influenced)]
-		
+	with concurrent.futures.ProcessPoolExecutor() as executor:		
 		futures = { executor.submit(worker_task, i) for i in range(100) }
 		for future in concurrent.futures.as_completed(futures):
 			ret = future.result()
@@ -123,9 +125,9 @@ if __name__ == '__main__':
 	sys.stdout.flush()
 
 
-	max_lin = sorted(lin_max_values, key=lambda t: t[1], reverse=True)[0]
-	max_eigenc = sorted(eigenc_max_values, key=lambda t: t[1], reverse=True)[0]
-	max_bet = sorted(bet_max_values, key=lambda t: t[1], reverse=True)[0]
+	max_lin = sorted(lin_max_values, key=lambda t: t[1], reverse=True)[0][1]
+	max_eigenc = sorted(eigenc_max_values, key=lambda t: t[1], reverse=True)[0][1]
+	max_bet = sorted(bet_max_values, key=lambda t: t[1], reverse=True)[0][1]
 
 	fig, ax = plt.subplots()
 
@@ -150,3 +152,4 @@ if __name__ == '__main__':
 
 	plt.savefig('ws.png')
 	plt.show()
+	print("program complete in {}".format(time.time() - start))
