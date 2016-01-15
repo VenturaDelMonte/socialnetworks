@@ -8,6 +8,7 @@ from datetime import datetime
 import concurrent.futures
 import time
 import pyprind
+import dill
 
 def worker_task(i):
 	start_time = time.time()
@@ -62,7 +63,7 @@ if __name__ == '__main__':
 
 	n = 100
 	pbar = pyprind.ProgBar(n,stream=1)
-	with concurrent.futures.ProcessPoolExecutor(4) as executor:
+	with concurrent.futures.ProcessPoolExecutor(5) as executor:
 		futures = { executor.submit(worker_task, i) for i in range(n) }
 		for future in concurrent.futures.as_completed(futures):
 			ret = future.result()
