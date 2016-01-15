@@ -50,6 +50,7 @@ class DirectedGraph:
 		self.nodes = None
 		self.__edgesCount = None
 		self.__isWS = None
+		self.__isDirected = None
 
 	def setWS(self, mode):
 		self.__isWS = mode
@@ -151,17 +152,16 @@ class DirectedGraph:
 		return ret
 
 
-	def betweenness(self, verbose = False):
+
+	def betweenness(self):
 		'''
-			Girvan-Newman algorithm
-			####
 			this is an indicator of a node's centrality in a network.
 			It is equal to the number of shortest paths from all vertices to all others
 			that pass through that node. A node with high betweenness centrality has
 			a large influence on the transfer of items through the network, 
 			under the assumption that item transfer follows the shortest paths.
 		'''
-		cb = {i : 0 for i in self.nodes} #betweenness centrality
+		cb = defaultdict(lambda: 0) #betweenness centrality
 
 		for i in self.nodes: #check the max distance for every node i
 			visited = [] #keep a list of visited nodes to check if the graph is connected
@@ -207,6 +207,54 @@ class DirectedGraph:
 				if w != i:
 					cb[w] += delta[w]
 		return cb
+
+	def betweennessEx(self):
+		'''
+			--> this version returns also the distance between all nodes! -> for smart computations
+			this is an indicator of a node's centrality in a network.
+			It is equal to the number of shortest paths from all vertices to all others
+			that pass through that node. A node with high betweenness centrality has
+			a large influence on the transfer of items through the network, 
+			under the assumption that item transfer follows the shortest paths.
+		'''
+		cb = defaultdict(lambda: 0)	 #betweenness centrality
+		D = {} # D[u][v] - dist between u and v
+		for i in self.nodes: #check the max distance for every node i
+			visited = [] #keep a list of visited nodes to check if the graph is connected
+			D[i] = {i : 0}
+			P = defaultdict(lambda: [])	
+			sigma = defaultdict(lambda: 0)	
+			sigma[i] = 1
+			queue = [i]
+
+			# BFS
+			while len(queue) > 0:
+				s = queue.pop(0)
+				visited.append(s)
+				if len(self.nodes[s]['list']) <= 0:
+					continue
+				d = D[i][s] + 1
+				for j in self.nodes[s]['list']: 
+					if not j in D[i]:
+						queue.append(j)
+						D[i][j] = d
+					elif D[i][j] > d:
+						D[i][j] = d
+					if D[i][j] == D[i][s] + 1:
+						sigma[j] += sigma[s]
+						P[j].append(s)
+			
+			# bottom-up
+			delta = defaultdict(lambda: 0) #{j: 0 for j in self.nodes}
+			# visited returns vertices in order of non-increasing distance from s
+			while len(visited) > 0:
+				w = visited.pop()
+				if len(P[w]) > 0:
+					for v in P[w]:
+						delta[v] += (float(sigma[v]) / sigma[w]) * (1.0 + delta[w])
+				if w != i:
+					cb[w] += delta[w]
+		return cb, D
 
 
 	def eigenvector_centrality(self, epsilon = 1e-03):
@@ -259,8 +307,55 @@ class DirectedGraph:
 					return distances[j]
 		return float('+inf')
 
+	def all_pairs_distance_BFS(self):
+		D = {} # D[u][v] - dist between u and v
+		for v in self.nodes:
+			D[v] = {v : 0}
+			queue = [v]
+			while len(queue) > 0:
+				curr = queue.pop(0)
+				d = D[v][curr] + 1
+				if len(self.nodes[curr]['list']) <= 0:
+					continue
+				for next in self.nodes[curr]['list']:
+					if not next in D[v]:
+						queue.append(next)
+						D[v][next] = d
+					elif D[v][next] > d:
+						D[v][next] = d
+		return D
 
-	def lin_index(self):
+	def all_pairs_distance_FW(self):
+		max = float('+inf')
+		distances = defaultdict(lambda: defaultdict(lambda: max))
+		for i in self.nodes:
+			distances[i][i] = 0
+			for j in self.nodes:
+				distances[j][j] = 0
+				if self.has_edge(i, j):
+					distances[i][j] = 1
+				if self.has_edge(j, i):
+					distances[j][i] = 1
+
+	
+		for k in self.nodes:
+			if len(self.nodes[k]['list']) == 0:
+				continue
+			for i in self.nodes:
+				if len(self.nodes[i]['list']) == 0:
+					continue
+				for j in self.nodes:
+					if i == j:
+						continue
+					target_dist = distances[i][k] + distances[k][j]
+					if distances[i][j] > target_dist:
+						distances[i][j] = target_dist
+
+		return distances
+
+
+
+	def lin_index(self, D = None):
 		'''
 			it retuns lin's index, which weights closeness using the 
 			square of the number of coreachable nodes.
@@ -293,23 +388,10 @@ class DirectedGraph:
 			using a BFS visit. 
 		'''
 		L = {}
-		D = {} # D[u][v] - dist between u and v
 
-		for v in self.nodes:
-			D[v] = {v : 0}
-			queue = [v]
-			while len(queue) > 0:
-				curr = queue.pop(0)
-				d = D[v][curr] + 1
-				if len(self.nodes[curr]['list']) <= 0:
-					continue
-				for next in self.nodes[curr]['list']:
-					if not next in D[v]:
-						queue.append(next)
-						D[v][next] = d
-					elif D[v][next] > d:
-						D[v][next] = d
-
+		if D == None:
+			D = self.all_pairs_distance_BFS()
+		
 		for u in self.nodes:
 			reachable = 0.0
 			closeness = 0.0

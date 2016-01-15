@@ -1,5 +1,5 @@
 from experiment import experiment
-from directed_graph import DirectGraph
+from directed_graph import DirectedGraph
 from directed_graph import topk
 import sys
 import matplotlib.pyplot as plt
@@ -7,10 +7,7 @@ import random
 from datetime import datetime
 import concurrent.futures
 import time
-
-
-
-
+import pyprind
 
 def worker_task(i):
 	start_time = time.time()
@@ -21,13 +18,15 @@ def worker_task(i):
 	incr = 0.001
 	p = random.uniform(0.001, 0.0028) # probability
 	seed = 100
-	print("# iteration %d" % (i+1))
+	#print("# iteration %d" % (i+1))
 	graph = None
+	edges, avgc = -1, -1
 	while p > 0:
-		print("generating graph with N={} p={}".format(NODES, p))
+		#print("generating graph with N={} p={}".format(NODES, p))
 		graph = DirectedGraph.randomDirectedGraph(NODES, p)
 		edges = graph.size()[1]
-		print("prob={} edges={}".format(p, edges))
+		avgc = graph.average_clustering()
+		#print("prob={} edges={}".format(p, edges))
 		if edges >= min_edges and edges <= max_edges:
 			break
 			# avgc = graph.average_clustering()
@@ -44,37 +43,42 @@ def worker_task(i):
 			p += ((min_edges - edges) / min_edges) * incr
 		sys.stdout.flush()
 
-	ret = experiment(graph)
-	print("# iteration %d done in %f" % (i+1, time.time() - start_time))
+	ret = experiment(graph, seed, rounds)
+	elapsed = time.time() - start_time
+	#print("# iteration %d done in %f" % (i+1, time.time() - start_time))
 
 	#return [(lin_max_seed, max_lin_influenced), (eigenc_max_seed, max_eigenc_influenced), (bet_max_seed, max_bet_influenced)]
-	return ret
+	return ret.append((edges, avgc, elapsed))
 
 if __name__ == '__main__':
 	start = time.time()
 	random.seed(datetime.now())	
 	seed = 100
 
-	lin_max_values = []
-	eigenc_max_values = []
-	bet_max_values = []
+	# lin_max_values = []
+	# eigenc_max_values = []
+	# bet_max_values = []
+	result = []
 
-	
-	with concurrent.futures.ProcessPoolExecutor(5) as executor:
-		futures = { executor.submit(worker_task, i) for i in range(100) }
+	n = 100
+	pbar = pyprind.ProgBar(n,stream=1)
+	with concurrent.futures.ProcessPoolExecutor(4) as executor:
+		futures = { executor.submit(worker_task, i) for i in range(n) }
 		for future in concurrent.futures.as_completed(futures):
 			ret = future.result()
-			lin_max_values.append(ret[0])
-			eigenc_max_values.append(ret[1])
-			bet_max_values.append(ret[2])
+			# lin_max_values.append(ret[0])
+			# eigenc_max_values.append(ret[1])
+			# bet_max_values.append(ret[2])
+			result.append(ret)
+			pbar.update()
 
+	dill.dump(result, open('rd', 'wb'))
+	'''
 	print('# Lin\tEigenvector\tBetweenness')
 	for x, y, z in zip(lin_max_values, eigenc_max_values, bet_max_values):
 		print("{}-{} {}-{} {}-{}".format(x[0], x[1], y[0], y[1], z[0], z[1]))
 
 	sys.stdout.flush()
-
-
 
 	fig, ax = plt.subplots()
 
@@ -103,5 +107,5 @@ if __name__ == '__main__':
 
 	plt.savefig('rd.png')
 	plt.show()
-
+	'''
 	print("program complete in {}".format(time.time() - start))
