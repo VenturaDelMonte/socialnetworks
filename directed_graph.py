@@ -11,6 +11,9 @@ import itertools
 import math
 import sys
 import time
+import logging
+from process_affinity_pool import ProcessPoolExecutorWithAffinity as ProcessPoolExecutor
+
 
 
 def euclidean_distance(a, b):
@@ -37,11 +40,15 @@ def cb_max(cb):
 '''
 class DirectedGraph: 
 	
-	def __init__(self, graph = {}):
+	def __init__(self, graph = {}, logger = None):
 		self.nodes = graph
 		self.__edgesCount = 0
 		self.__isWS = False
 		self.__isDirected = True
+		self.logger = logger
+
+	def setLogger(self, logger):
+		self.logger = logger
 
 	def __enter__(self):
 		return self
@@ -254,6 +261,65 @@ class DirectedGraph:
 						delta[v] += (float(sigma[v]) / sigma[w]) * (1.0 + delta[w])
 				if w != i:
 					cb[w] += delta[w]
+		return cb, D
+
+	def parallelBetweennessEx(self):
+		'''
+			--> this version returns also the distance between all nodes! -> for smart computations
+			this is an indicator of a node's centrality in a network.
+			It is equal to the number of shortest paths from all vertices to all others
+			that pass through that node. A node with high betweenness centrality has
+			a large influence on the transfer of items through the network, 
+			under the assumption that item transfer follows the shortest paths.
+		'''
+		cb = defaultdict(lambda: 0)	 #betweenness centrality
+		D = {} # D[u][v] - dist between u and v
+
+		def worker_task(i):
+			_cb = 0
+			visited = [] #keep a list of visited nodes to check if the graph is connected
+			_D = {i : 0}
+			P = defaultdict(lambda: [])	
+			sigma = defaultdict(lambda: 0)	
+			sigma[i] = 1
+			queue = [i]
+
+			# BFS
+			while len(queue) > 0:
+				s = queue.pop(0)
+				visited.append(s)
+				if len(self.nodes[s]['list']) <= 0:
+					continue
+				d = _D[s] + 1
+				for j in self.nodes[s]['list']: 
+					if not j in _D:
+						queue.append(j)
+						_D[j] = d
+					elif _D[j] > d:
+						_D[j] = d
+					if _D[j] == _D[s] + 1:
+						sigma[j] += sigma[s]
+						P[j].append(s)
+			
+			# bottom-up
+			delta = defaultdict(lambda: 0) #{j: 0 for j in self.nodes}
+			# visited returns vertices in order of non-increasing distance from s
+			while len(visited) > 0:
+				w = visited.pop()
+				if len(P[w]) > 0:
+					for v in P[w]:
+						delta[v] += (float(sigma[v]) / sigma[w]) * (1.0 + delta[w])
+				if w != i:
+					_cb += delta[w]
+			return i, _cb, _D
+
+		with ProcessPoolExecutor() as executor:
+			futures = { executor.submit(worker_task, i) for i in self.nodes }
+			for future in concurrent.futures.as_completed(futures):
+				res = future.result()
+				cb[res[0]] = res[1]
+				D[res[0]] = res[2]
+			
 		return cb, D
 
 

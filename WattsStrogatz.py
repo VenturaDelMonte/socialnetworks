@@ -7,6 +7,7 @@ from datetime import datetime
 import time
 import concurrent.futures
 from experiment import experiment
+import dill
 
 def worker_task(i):
 	start_time = time.time()
@@ -22,10 +23,15 @@ def worker_task(i):
 	radius = 2
 	weak_ties = [i*5 for i in range(0, 3)]
 	ret = None
+	avgc = 0
+	edges = 0
 	with DirectGraph.WS2DGraph(NODES, random.randint(min_edges, max_edges), radius, weak_ties) as graph:
+		edges = graph.size()[1]
+		avgc = graph.toUndirect().average_clustering()
 		ret = experiment(graph, seed, rounds)
-		print("# iteration %d done in %f" % (i+1, time.time() - start_time))
-	return ret
+	#	print("# iteration %d done in %f" % (i+1, time.time() - start_time))
+	elapsed = time.time() - start_time
+	return ret.append((edges, avgc, elapsed, p, radius))
 
 if __name__ == '__main__':
 	start = time.time()
@@ -38,20 +44,24 @@ if __name__ == '__main__':
 	bet_max_values = []
 
 	
-	with concurrent.futures.ProcessPoolExecutor() as executor:		
-		futures = { executor.submit(worker_task, i) for i in range(100) }
+	n = 100
+	pbar = pyprind.ProgBar(n,stream=1)
+	with concurrent.futures.ProcessPoolExecutor(5) as executor:
+		futures = { executor.submit(worker_task, i) for i in range(n) }
 		for future in concurrent.futures.as_completed(futures):
 			ret = future.result()
-			lin_max_values.append(ret[0])
-			eigenc_max_values.append(ret[1])
-			bet_max_values.append(ret[2])
+			# lin_max_values.append(ret[0])
+			# eigenc_max_values.append(ret[1])
+			# bet_max_values.append(ret[2])
+			result.append(ret)
+			pbar.update()
 
-	print('# Lin\tEigenvector\tBetweenness')
-	for x, y, z in zip(lin_max_values, eigenc_max_values, bet_max_values):
-		print("{}-{} {}-{} {}-{}".format(x[0], x[1], y[0], y[1], z[0], z[1]))
+	dill.dump(result, open('ws', 'wb'))
 
+
+	
 	sys.stdout.flush()
-
+	'''
 
 	max_lin = sorted(lin_max_values, key=lambda t: t[1], reverse=True)[0][1]
 	max_eigenc = sorted(eigenc_max_values, key=lambda t: t[1], reverse=True)[0][1]
@@ -80,4 +90,5 @@ if __name__ == '__main__':
 
 	plt.savefig('ws.png')
 	plt.show()
+	'''
 	print("program complete in {}".format(time.time() - start))

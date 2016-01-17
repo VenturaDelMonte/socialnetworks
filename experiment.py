@@ -1,42 +1,55 @@
 from directed_graph import DirectedGraph
 from directed_graph import topk
 import sys
+import time
+import logging
+
+logger = logging.getLogger()
 
 def Run_LTM(graph, seeds, rounds, centrality):
+	global logger
+	s = time.time()
 	v, e = graph.size()
-	#print("* running LTM({}) TOP {} {} - graph size: {} {}".format(rounds, len(seeds), centrality, v, e))
+	logger.info("* running LTM({}) TOP {} {} - graph size: {} {}".format(rounds, len(seeds), centrality, v, e))
 	influenced, kept, steps = graph.ltm(seeds, rounds)
-	#print("** influenced(%d) kept(%d) steps(%d)" % (len(influenced), len(kept), steps))
+	logger.info("** influenced({}) kept({}) steps({}) in {}".format(len(influenced), len(kept), steps, time.time() - s))
 	return len(influenced), len(kept), steps
 
 
 def experiment(graph, seed, rounds):
-	#print('# Edges = %d\tAverage Clustering = %f' % (graph.countEdges(), graph.toUndirect().average_clustering()))
+	global logger
+	if logger is None:
+		logger = logging.getLogger()
+	logger.info('# Edges = %d\tAverage Clustering = %f' % (graph.countEdges(), graph.toUndirect().average_clustering()))
 	sys.stdout.flush()
 
-	#print('# Eigenvector Centrality...')
+	nodes, edges = graph.size()
+	logger.info('# Eigenvector Centrality...')
+	s = time.time()
 	diffsum, cscores = graph.eigenvector_centrality()
-	# #print(diffsum)
-	# #print(cscores)
+	# #logger.info(diffsum)
+	# #logger.info(cscores)
 	top_eigenc = [a for a, b in topk(cscores, seed)]
-	#print(top_eigenc)
-	#print('# Done')
+	#logger.info(top_eigenc)
+	logger.info('# Eigenvector Centrality Done in {}'.format(time.time() - s))
 	sys.stdout.flush()
 
-	#print('# Betweennes centrality...')
+	logger.info('# Betweennes centrality...')
+	s = time.time()
 	bet, D = graph.betweennessEx()
-	# #print(bet)
+	# #logger.info(bet)
 	top_bet = [a for a, b in topk(bet, seed)]
-	#print(top_bet)
-	#print('# Done')
+	#logger.info(top_bet)
+	logger.info('# Betweennes Done in {}'.format(time.time() - s))
 	sys.stdout.flush()
 
-	#print("# Lin's index...")
+	logger.info("# Lin's index...")
+	s = time.time()
 	lin = graph.lin_index(D)
-	##print(lin)
+	##logger.info(lin)
 	top_lin = [a for a, b in topk(lin, seed)]
-	#print(top_lin)
-	#print('# Done')
+	#logger.info(top_lin)
+	logger.info('# Lin Done in {}'.format(time.time() - s))
 	sys.stdout.flush()
 	del D
 
@@ -48,7 +61,7 @@ def experiment(graph, seed, rounds):
 	bet_max_seed = seed
 
 	
-	while seed > 0:
+	while seed > 0 and max_lin_influenced < nodes:
 		seed -= 5
 		influenced_lin, _, _rounds = Run_LTM(graph, top_lin[:seed], rounds, 'Lin')
 		if max_lin_influenced <= influenced_lin:
@@ -59,7 +72,7 @@ def experiment(graph, seed, rounds):
 			break
 			
 	seed = 100
-	while seed > 0:
+	while seed > 0 and max_eigenc_influenced < nodes:
 		seed -= 5
 		influenced_eigenc, _, _rounds = Run_LTM(graph, top_eigenc[:seed], rounds, 'Eigenvector')
 		if max_eigenc_influenced <= influenced_eigenc:
@@ -70,7 +83,7 @@ def experiment(graph, seed, rounds):
 			break
 			 
 	seed = 100
-	while seed > 0:
+	while seed > 0 and max_bet_influenced < nodes:
 		seed -= 5
 		influenced_bet, _, _rounds= Run_LTM(graph, top_bet[:seed], rounds, 'Betweenness')
 		if max_bet_influenced <= influenced_bet:
