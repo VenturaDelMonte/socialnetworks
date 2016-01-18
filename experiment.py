@@ -93,5 +93,5 @@ def experiment(graph, seed, rounds):
 			break
 	
 	sys.stdout.flush()
-	return [(max_lin_influenced,lin_max_seed,lin_rounds),(max_eigenc_influenced,eigenc_max_seed,lin_rounds),(max_bet_influenced,bet_max_seed,bet_rounds)]
+	return [(max_lin_influenced,lin_max_seed,lin_rounds),(max_eigenc_influenced,eigenc_max_seed,eigenc_rounds),(max_bet_influenced,bet_max_seed,bet_rounds)]
 
