@@ -33,7 +33,7 @@ def experiment(graph, seed, rounds):
 	#logger.info(top_eigenc)
 	logger.info('# Eigenvector Centrality Done in {}'.format(time.time() - s))
 	sys.stdout.flush()
-
+	
 	logger.info('# Betweennes centrality...')
 	s = time.time()
 	bet, D = graph.betweennessEx()
@@ -52,14 +52,13 @@ def experiment(graph, seed, rounds):
 	logger.info('# Lin Done in {}'.format(time.time() - s))
 	sys.stdout.flush()
 	del D
-
+	
 	max_lin_influenced, _, lin_rounds = Run_LTM(graph, top_lin[:seed], rounds, 'Lin')
 	max_eigenc_influenced, _, eigenc_rounds = Run_LTM(graph, top_eigenc[:seed], rounds, 'Eigenvector')
 	max_bet_influenced, _, bet_rounds = Run_LTM(graph, top_bet[:seed], rounds, 'Betweenness')
 	lin_max_seed = seed
 	eigenc_max_seed = seed
 	bet_max_seed = seed
-
 	
 	while seed > 0 and max_lin_influenced < nodes:
 		seed -= 5
@@ -70,7 +69,7 @@ def experiment(graph, seed, rounds):
 			lin_rounds = _rounds
 		else:
 			break
-			
+	
 	seed = 100
 	while seed > 0 and max_eigenc_influenced < nodes:
 		seed -= 5
@@ -81,7 +80,7 @@ def experiment(graph, seed, rounds):
 			eigenc_rounds = _rounds
 		else:
 			break
-			 
+	
 	seed = 100
 	while seed > 0 and max_bet_influenced < nodes:
 		seed -= 5
@@ -93,9 +92,6 @@ def experiment(graph, seed, rounds):
 		else:
 			break
 	
-	#lin_max_values.append((lin_max_seed, max_lin_influenced))
-	#eigenc_max_values.append((eigenc_max_seed, max_eigenc_influenced))
-	#bet_max_values.append((bet_max_seed, max_bet_influenced))
 	sys.stdout.flush()
-
 	return [(max_lin_influenced,lin_max_seed,lin_rounds),(max_eigenc_influenced,eigenc_max_seed,lin_rounds),(max_bet_influenced,bet_max_seed,bet_rounds)]
+

@@ -11,17 +11,18 @@ import concurrent.futures
 import time
 import atexit
 import dill
-from process_affinity_pool import ProcessPoolExecutorWithAffinity as ProcessPoolExecutor
+#from process_affinity_pool import ProcessPoolExecutorWithAffinity as ProcessPoolExecutor
+from concurrent.futures import ProcessPoolExecutor
 import logging
+import os
 
 logger = None
 
 def worker_task(i):
 	global logger
-	current_proc = psutil.Process()
 	if logger is None:
 		logging.basicConfig(format="%(asctime)s [%(process)-4.4s--%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s")
-		fileHandler = logging.FileHandler('RD_log.log.{}'.format(current_proc.cpu_affinity()[0]),mode='a')
+		fileHandler = logging.FileHandler('RD_log.log.{}'.format(os.getpid()),mode='w')
 		logger=logging.getLogger()
 		logger.addHandler(fileHandler)
 		logger.setLevel(logging.DEBUG)
@@ -32,9 +33,9 @@ def worker_task(i):
 	min_edges = 75000
 	max_edges = 125000
 	incr = 0.001
-	p = random.uniform(0.001, 0.0025) # probability
+	p = random.uniform(0.0015, 0.0024) # probability
 	seed = 100
-	logger.info("# iteration {} on proc {}".format(i+1, current_proc.cpu_affinity()))
+	logger.info("# iteration {}".format(i+1))
 	graph = None
 	edges, avgc = -1, -1
 	while p > 0:
@@ -59,13 +60,17 @@ def worker_task(i):
 			p += ((min_edges - edges) / min_edges) * incr
 		sys.stdout.flush()
 
-	graph.setLogger(logger)
+	#graph.setLogger(logger)
+	
 	ret = experiment(graph, seed, rounds)
 	elapsed = time.time() - start_time
+	ret.append((edges, avgc, elapsed))
+	
 	logger.info("# iteration %d done in %f" % (i+1, time.time() - start_time))
-	gc.collect()
+	logger.info("# {}".format(ret))
+	#gc.collect()
 	#return [(lin_max_seed, max_lin_influenced), (eigenc_max_seed, max_eigenc_influenced), (bet_max_seed, max_bet_influenced)]
-	return ret.append((edges, avgc, elapsed))
+	return ret
 
 
 
@@ -92,6 +97,9 @@ if __name__ == '__main__':
 	logging.basicConfig(format="%(asctime)s [%(process)-4.4s--%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s")
 	logger=logging.getLogger()
 	logger.setLevel(logging.DEBUG)
+	fileHandler = logging.FileHandler('RD_log.log',mode='w')
+	logger=logging.getLogger()
+	logger.addHandler(fileHandler)
 	logger.info("starting...")
 
 	start = time.time()
@@ -104,7 +112,7 @@ if __name__ == '__main__':
 	
 	n = 100
 	#pbar = pyprind.ProgBar(n,stream=1)
-	with ProcessPoolExecutor(5) as executor:
+	with ProcessPoolExecutor() as executor:
 		futures = { executor.submit(worker_task, i) for i in range(n) }
 		for future in concurrent.futures.as_completed(futures):
 			ret = future.result()
@@ -112,6 +120,8 @@ if __name__ == '__main__':
 			# eigenc_max_values.append(ret[1])
 			# bet_max_values.append(ret[2])
 			result.append(ret)
+			logger.info("{}+{}".format(result,ret))
+			print("{}+{}".format(result,ret))
 			#pbar.update()
 
 	dill.dump(result, open('rd', 'wb'))
