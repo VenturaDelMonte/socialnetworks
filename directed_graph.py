@@ -247,7 +247,7 @@ class DirectedGraph:
 						D[i][j] = d
 					elif D[i][j] > d:
 						D[i][j] = d
-					if D[i][j] == D[i][s] + 1:
+					if D[i][j] == d:
 						sigma[j] += sigma[s]
 						P[j].append(s)
 			
@@ -581,7 +581,7 @@ class DirectedGraph:
 				if random.random() <= p:
 					graph.add_edge(j, i)
 		'''
-		for edge in itertools.permutations(graph.nodes, 2):
+		for edge in itertools.permutations(graph.nodes.keys(), 2):
 			if random.random() <= p:
 				graph.add_edge(edge[0], edge[1])
 		return graph
@@ -614,7 +614,7 @@ class DirectedGraph:
 		graph = DirectedGraph({v : {'list': set()} for v in range(n)})
 
 		while m > 0:
-			i = random.randint(0, line-1)
+			i = random.randint(0, line - 1)
 			#j = random.randint(0, line-1)
 			#For each node u, we add an edge to each node at distance at most r from u
 			for j in range(line):
@@ -678,26 +678,23 @@ class DirectedGraph:
     	This is the idea behind the 'Rich get Richer' phenomen
 
 		'''
-		graph = DirectedGraph()
-		for v in range(n):
-			graph.add_vertex(v)
 		I = []
-		for v in range(n):
-			for i in range(d):
-				if random.random() <= p:
-					j = random.randint(0, n - 1)
-					if v == j:
-						continue
-					graph.add_edge(v, j)
-					I.append(j)
-				elif len(I) > 1:
-					l = v
-					while True:
+		graph = DirectedGraph()
+		for j in range(n):
+			graph.add_vertex(j)
+			curr_nodes = graph.size()[0]
+			if curr_nodes > 1:
+				for _ in range(d):
+					if random.random() <= p:
+						i = random.randint(0, curr_nodes - 1)
+						if not graph.has_edge(j, i):
+							graph.add_edge(j, i)
+							I.append(i)
+					elif len(I) > 1:
 						l = random.choice(I)
-						if l != v:
-							break
-					graph.add_edge(v, l)
-					I.append(l)
+						if not graph.has_edge(j, l) and l != j:
+							graph.add_edge(j, l)
+							I.append(l)
 		return graph
 
 	@staticmethod		

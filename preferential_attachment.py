@@ -1,17 +1,33 @@
-from direct_graph import DirectGraph
-from direct_graph import topk
+from experiment import experiment
+from directed_graph import DirectedGraph
+from directed_graph import topk
 import sys
-import matplotlib.pyplot as plt
+import psutil
+import gc
+#import matplotlib.pyplot as plt
 import random
 from datetime import datetime
-import time
 import concurrent.futures
-from experiment import experiment
+import time
+import atexit
 import dill
+#from process_affinity_pool import ProcessPoolExecutorWithAffinity as ProcessPoolExecutor
+from concurrent.futures import ProcessPoolExecutor
+import logging
+import os
+
+logger = None
 
 def worker_task(i):
+	global logger
+	if logger is None:
+		logging.basicConfig(format="%(asctime)s [%(process)-4.4s--%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s")
+		fileHandler = logging.FileHandler('RD_log.log.{}'.format(os.getpid()),mode='w')
+		logger=logging.getLogger()
+		logger.addHandler(fileHandler)
+		logger.setLevel(logging.DEBUG)
+	random.seed(datetime.now())	
 	start_time = time.time()
-	print("# iteration %d" % (i+1))
 	rounds = 10
 	NODES = 7115
 	min_edges = 75000
@@ -30,7 +46,11 @@ def worker_task(i):
 #		print("# iteration %d done in %f" % (i+1, time.time() - start_time))
 
 	elapsed = time.time() - start_time
-	return ret.append((edges, avgc, elapsed, p, d))
+	ret.append((edges, avgc, elapsed, p, d))
+	logger.info("# iteration %d done in %f" % (i+1, elapsed))
+	logger.info("# {}".format(ret))
+
+	return ret
 
 
 if __name__ == '__main__':
@@ -47,8 +67,7 @@ if __name__ == '__main__':
 	result = []
 
 	n = 100
-	pbar = pyprind.ProgBar(n,stream=1)
-	with concurrent.futures.ProcessPoolExecutor(6) as executor:
+	with concurrent.futures.ProcessPoolExecutor() as executor:
 		futures = { executor.submit(worker_task, i) for i in range(n) }
 		for future in concurrent.futures.as_completed(futures):
 			ret = future.result()
@@ -56,7 +75,6 @@ if __name__ == '__main__':
 			# eigenc_max_values.append(ret[1])
 			# bet_max_values.append(ret[2])
 			result.append(ret)
-			pbar.update()
 
 	dill.dump(result, open('pa', 'wb'))
 
@@ -96,4 +114,4 @@ if __name__ == '__main__':
 	plt.savefig('pa.png')
 	plt.show()
 	'''
-	print("program complete in {}".format(time.time() - start))
+	logger.info("program complete in {}".format(time.time() - start))

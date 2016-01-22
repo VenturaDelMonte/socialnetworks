@@ -15,15 +15,11 @@ def Run_LTM(graph, seeds, rounds, centrality):
 	logger.info("** influenced({}) kept({}) steps({}) in {}".format(len(influenced), len(kept), steps, time.time() - s))
 	return len(influenced), len(kept), steps
 
-
-def experiment(graph, seed, rounds):
-	global logger
-	if logger is None:
-		logger = logging.getLogger()
-	logger.info('# Edges = %d\tAverage Clustering = %f' % (graph.countEdges(), graph.toUndirect().average_clustering()))
-	sys.stdout.flush()
-
+def take_measures(graph, seed):
 	nodes, edges = graph.size()
+	s = time.time()
+	avgc = graph.toUndirect().average_clustering()
+	logger.info('# Edges = %d\tAverage Clustering = %f [%f]' % (edges, avgc, time.time() - s))
 	logger.info('# Eigenvector Centrality...')
 	s = time.time()
 	diffsum, cscores = graph.eigenvector_centrality()
@@ -52,7 +48,10 @@ def experiment(graph, seed, rounds):
 	logger.info('# Lin Done in {}'.format(time.time() - s))
 	sys.stdout.flush()
 	del D
-	
+	return top_eigenc, top_bet, top_lin
+
+def simulate(graph, top_eigenc, top_bet, top_lin, seed, rounds):
+	nodes = graph.size()[0]
 	max_lin_influenced, _, lin_rounds = Run_LTM(graph, top_lin[:seed], rounds, 'Lin')
 	max_eigenc_influenced, _, eigenc_rounds = Run_LTM(graph, top_eigenc[:seed], rounds, 'Eigenvector')
 	max_bet_influenced, _, bet_rounds = Run_LTM(graph, top_bet[:seed], rounds, 'Betweenness')
@@ -91,7 +90,22 @@ def experiment(graph, seed, rounds):
 			bet_rounds = _rounds
 		else:
 			break
+
+	return (max_lin_influenced,lin_max_seed,lin_rounds),(max_eigenc_influenced,eigenc_max_seed,eigenc_rounds),(max_bet_influenced,bet_max_seed,bet_rounds)
+	
+
+def experiment(graph, seed, rounds):
+	global logger
+	if logger is None:
+		logger = logging.getLogger()
 	
 	sys.stdout.flush()
-	return [(max_lin_influenced,lin_max_seed,lin_rounds),(max_eigenc_influenced,eigenc_max_seed,eigenc_rounds),(max_bet_influenced,bet_max_seed,bet_rounds)]
+
+	top_eigenc, top_bet, top_lin = take_measures(graph, seed)
+	
+	l, e, b = simulate(graph, top_eigenc, top_bet, top_lin, seed, rounds)
+	
+	sys.stdout.flush()
+	return [l, e, b]
+
 
