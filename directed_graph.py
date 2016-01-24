@@ -535,13 +535,14 @@ class DirectedGraph:
 		return activated
 
 
-	def ltm(self, seeds, rounds = 1):
+	def ltm(self, seeds, rounds = 1, reassign = True):
 		'''
 		Granovetter - Threshold models of collective behavior.
 		'''
 		vertices = len(self.nodes)
 		for u in self.nodes:
-			self.nodes[u]['LTMthreshold'] = random.uniform(0.0, 1.0)
+			if reassign or not 'LTMthreshold' in self.nodes[u]:
+				self.nodes[u]['LTMthreshold'] = random.uniform(0.0, 1.0)
 
 		A = set(seeds)
 		neg_A = set(self.nodes.keys()) - A

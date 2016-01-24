@@ -8,8 +8,18 @@ import dill
 import concurrent.futures
 from concurrent.futures import ProcessPoolExecutor
 import logging
+from datetime import datetime
+import random
 
-def worker_task(graph, top_eigenc, top_bet, top_lin, seed, rounds):
+logger = None
+
+def worker_task(idx, graph, top_eigenc, top_bet, top_lin, seed, rounds):
+	global logger
+	if logger is None:
+		logging.basicConfig(format="%(asctime)s [%(process)-4.4s--%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s")
+		logger=logging.getLogger()
+		logger.setLevel(logging.DEBUG)
+	random.seed(datetime.now().timestamp() * idx)
 	l, e, b = simulate(graph, top_eigenc, top_bet, top_lin, seed, rounds)
 	return [l, e, b]
 
@@ -19,18 +29,23 @@ if __name__ == '__main__':
 	rounds = 10
 	seed = 100
 
+	logging.basicConfig(format="%(asctime)s [%(process)-4.4s--%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s")
+	logger=logging.getLogger()
+	logger.setLevel(logging.DEBUG)
+	logger.info("starting...")
+
 	with DirectedGraph.from_filename('wiki-Vote.txt') as graph:
 		top_eigenc, top_bet, top_lin = take_measures(graph, seed)
 		n = 100
 		#lin_max_values, eigenc_max_values, bet_max_values = experiment(graph, seed, rounds)
 		with ProcessPoolExecutor() as executor:
-			futures = { executor.submit(worker_task, graph, top_eigenc, top_bet, top_lin, seed, rounds) for i in range(n) }
+			futures = { executor.submit(worker_task, i, graph, top_eigenc, top_bet, top_lin, seed, rounds) for i in range(n) }
 			for future in concurrent.futures.as_completed(futures):
 				ret = future.result()
 				# lin_max_values.append(ret[0])
 				# eigenc_max_values.append(ret[1])
 				# bet_max_values.append(ret[2])
-				print(ret)
+				logger.info(ret)
 				result.append(ret)
 
 
