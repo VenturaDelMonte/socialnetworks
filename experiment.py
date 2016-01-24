@@ -59,7 +59,7 @@ def simulate(graph, top_eigenc, top_bet, top_lin, seed, rounds):
 	eigenc_max_seed = seed
 	bet_max_seed = seed
 	
-	while seed > 0 and max_lin_influenced < nodes:
+	while seed > 5:
 		seed -= 5
 		influenced_lin, _, _rounds = Run_LTM(graph, top_lin[:seed], rounds, 'Lin')
 		if max_lin_influenced <= influenced_lin:
@@ -70,7 +70,7 @@ def simulate(graph, top_eigenc, top_bet, top_lin, seed, rounds):
 			break
 	
 	seed = 100
-	while seed > 0 and max_eigenc_influenced < nodes:
+	while seed > 5:
 		seed -= 5
 		influenced_eigenc, _, _rounds = Run_LTM(graph, top_eigenc[:seed], rounds, 'Eigenvector')
 		if max_eigenc_influenced <= influenced_eigenc:
@@ -81,7 +81,7 @@ def simulate(graph, top_eigenc, top_bet, top_lin, seed, rounds):
 			break
 	
 	seed = 100
-	while seed > 0 and max_bet_influenced < nodes:
+	while seed > 5:
 		seed -= 5
 		influenced_bet, _, _rounds= Run_LTM(graph, top_bet[:seed], rounds, 'Betweenness')
 		if max_bet_influenced <= influenced_bet:
