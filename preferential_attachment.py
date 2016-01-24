@@ -22,7 +22,7 @@ def worker_task(i):
 	global logger
 	if logger is None:
 		logging.basicConfig(format="%(asctime)s [%(process)-4.4s--%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s")
-		fileHandler = logging.FileHandler('RD_log.log.{}'.format(os.getpid()),mode='w')
+		fileHandler = logging.FileHandler('PA_log.log.{}'.format(os.getpid()),mode='w')
 		logger=logging.getLogger()
 		logger.addHandler(fileHandler)
 		logger.setLevel(logging.DEBUG)
@@ -39,7 +39,7 @@ def worker_task(i):
 	ret = None
 	avgc = 0
 	edges = 0
-	with DirectGraph.preferentialAttachment(NODES, d, p) as graph:
+	with DirectedGraph.preferentialAttachment(NODES, d, p) as graph:
 		edges = graph.size()[1]
 		avgc = graph.toUndirect().average_clustering()
 		ret = experiment(graph, seed, rounds)
@@ -54,6 +54,14 @@ def worker_task(i):
 
 
 if __name__ == '__main__':
+	logging.basicConfig(format="%(asctime)s [%(process)-4.4s--%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s")
+	logger=logging.getLogger()
+	logger.setLevel(logging.DEBUG)
+	fileHandler = logging.FileHandler('PA_log.log',mode='w')
+	logger=logging.getLogger()
+	logger.addHandler(fileHandler)
+	logger.info("starting...")
+
 	start = time.time()
 	random.seed(datetime.now())	
 	
@@ -75,6 +83,8 @@ if __name__ == '__main__':
 			# eigenc_max_values.append(ret[1])
 			# bet_max_values.append(ret[2])
 			result.append(ret)
+			logger.info("{}+{}".format(result,ret))
+			print("{}+{}".format(result,ret))
 
 	dill.dump(result, open('pa', 'wb'))
 

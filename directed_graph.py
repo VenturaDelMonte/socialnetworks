@@ -682,11 +682,10 @@ class DirectedGraph:
 		graph = DirectedGraph()
 		for j in range(n):
 			graph.add_vertex(j)
-			curr_nodes = graph.size()[0]
-			if curr_nodes > 1:
+			if j > 1:
 				for _ in range(d):
 					if random.random() <= p:
-						i = random.randint(0, curr_nodes - 1)
+						i = random.randint(0, j - 1)
 						if not graph.has_edge(j, i):
 							graph.add_edge(j, i)
 							I.append(i)
