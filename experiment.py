@@ -90,7 +90,7 @@ def simulate(graph, top_eigenc, top_bet, top_lin, seed, rounds):
 			bet_rounds = _rounds
 		else:
 			break
-
+	sys.stdout.flush()		
 	return (max_lin_influenced,lin_max_seed,lin_rounds),(max_eigenc_influenced,eigenc_max_seed,eigenc_rounds),(max_bet_influenced,bet_max_seed,bet_rounds)
 	
 

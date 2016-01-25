@@ -24,16 +24,17 @@ def worker_task(i):
 		logging.basicConfig(format="%(asctime)s [%(process)-4.4s--%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s")
 		fileHandler = logging.FileHandler('PA_log.log.{}'.format(os.getpid()),mode='w')
 		logger=logging.getLogger()
+		#fileHandler.setFormatter(logging.Formatter("%(asctime)s [%(process)-4.4s--%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s"))
 		logger.addHandler(fileHandler)
 		logger.setLevel(logging.DEBUG)
-	random.seed(datetime.now())	
+	random.seed(datetime.now().timestamp() * i)
 	start_time = time.time()
 	rounds = 10
 	NODES = 7115
 	min_edges = 75000
 	max_edges = 125000
 	incr = 0.001
-	p = 0.4 # probability
+	p = random.uniform(0.35, 0.45) # probability
 	seed = 100
 	d = int(random.randint(min_edges, max_edges) / NODES)
 	ret = None
@@ -49,7 +50,7 @@ def worker_task(i):
 	ret.append((edges, avgc, elapsed, p, d))
 	logger.info("# iteration %d done in %f" % (i+1, elapsed))
 	logger.info("# {}".format(ret))
-
+	sys.stdout.flush()
 	return ret
 
 
@@ -58,6 +59,7 @@ if __name__ == '__main__':
 	logger=logging.getLogger()
 	logger.setLevel(logging.DEBUG)
 	fileHandler = logging.FileHandler('PA_log.log',mode='w')
+	#fileHandler.setFormatter(logging.Formatter("%(asctime)s [%(process)-4.4s--%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s"))
 	logger=logging.getLogger()
 	logger.addHandler(fileHandler)
 	logger.info("starting...")
@@ -66,15 +68,15 @@ if __name__ == '__main__':
 	random.seed(datetime.now())	
 	
 	seed = 100
-
+	'''
 	lin_max_values = []
 	eigenc_max_values = []
 	bet_max_values = []
-
+	'''
 	
 	result = []
 
-	n = 100
+	n = 64
 	with concurrent.futures.ProcessPoolExecutor() as executor:
 		futures = { executor.submit(worker_task, i) for i in range(n) }
 		for future in concurrent.futures.as_completed(futures):
@@ -85,6 +87,7 @@ if __name__ == '__main__':
 			result.append(ret)
 			logger.info("{}+{}".format(result,ret))
 			print("{}+{}".format(result,ret))
+			sys.stdout.flush()
 
 	dill.dump(result, open('pa', 'wb'))
 
