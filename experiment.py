@@ -90,7 +90,7 @@ def simulate(graph, top_eigenc, top_bet, top_lin, seed, rounds):
 			bet_rounds = _rounds
 		else:
 			break
-
+	sys.stdout.flush()		
 	return (max_lin_influenced,lin_max_seed,lin_rounds),(max_eigenc_influenced,eigenc_max_seed,eigenc_rounds),(max_bet_influenced,bet_max_seed,bet_rounds)
 	
 
@@ -101,10 +101,13 @@ def experiment(graph, seed, rounds):
 	
 	sys.stdout.flush()
 
+	start1 = time.time()
 	top_eigenc, top_bet, top_lin = take_measures(graph, seed)
-	
+	elapsed1 = time.time() - start1
+	start2 = time.time()
 	l, e, b = simulate(graph, top_eigenc, top_bet, top_lin, seed, rounds)
-	
+	elapsed2 = time.time() - start2
+	logger.info("e1={}:::e2={}".format(elapsed1, elapsed2))
 	sys.stdout.flush()
 	return [l, e, b]
 

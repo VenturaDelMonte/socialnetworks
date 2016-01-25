@@ -1,5 +1,5 @@
-from direct_graph import DirectGraph
-from direct_graph import topk
+from directed_graph import DirectedGraph
+from directed_graph import topk
 import sys
 import matplotlib.pyplot as plt
 import random
@@ -8,12 +8,24 @@ import time
 import concurrent.futures
 from experiment import experiment
 import dill
+import logging
+import os
+
+logger = None
+
 
 def worker_task(i):
-	start_time = time.time()
+	global logger
+	if logger is None:
+		logging.basicConfig(format="%(asctime)s [%(process)-4.4s--%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s")
+		fileHandler = logging.FileHandler('WS_log.log.{}'.format(os.getpid()),mode='w')
+		logger=logging.getLogger()
+		logger.addHandler(fileHandler)
+		logger.setLevel(logging.DEBUG)
 	rounds = 10
-
-	print("# iteration %d" % (i+1))
+	random.seed(datetime.now())	
+	start_time = time.time()
+	logger.info("# iteration %d" % (i+1))
 	NODES = 7115
 	min_edges = 75000
 	max_edges = 125000
@@ -25,15 +37,25 @@ def worker_task(i):
 	ret = None
 	avgc = 0
 	edges = 0
-	with DirectGraph.WS2DGraph(NODES, random.randint(min_edges, max_edges), radius, weak_ties) as graph:
+	with DirectedGraph.WS2DGraph(NODES, random.randint(min_edges, max_edges), radius, weak_ties) as graph:
 		edges = graph.size()[1]
 		avgc = graph.toUndirect().average_clustering()
 		ret = experiment(graph, seed, rounds)
 	#	print("# iteration %d done in %f" % (i+1, time.time() - start_time))
 	elapsed = time.time() - start_time
-	return ret.append((edges, avgc, elapsed, p, radius))
+	ret.append((edges, avgc, elapsed, p, radius))
+	logger.info("# iteration %d done in %f" % (i+1, elapsed))
+	logger.info("# {}".format(ret))
+	return ret
 
 if __name__ == '__main__':
+	logging.basicConfig(format="%(asctime)s [%(process)-4.4s--%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s")
+	logger=logging.getLogger()
+	logger.setLevel(logging.DEBUG)
+	fileHandler = logging.FileHandler('WS_log.log',mode='w')
+	logger=logging.getLogger()
+	logger.addHandler(fileHandler)
+	logger.info("starting...")
 	start = time.time()
 	random.seed(datetime.now())	
 	
@@ -45,8 +67,7 @@ if __name__ == '__main__':
 
 	
 	n = 100
-	pbar = pyprind.ProgBar(n,stream=1)
-	with concurrent.futures.ProcessPoolExecutor(5) as executor:
+	with concurrent.futures.ProcessPoolExecutor() as executor:
 		futures = { executor.submit(worker_task, i) for i in range(n) }
 		for future in concurrent.futures.as_completed(futures):
 			ret = future.result()
@@ -54,7 +75,9 @@ if __name__ == '__main__':
 			# eigenc_max_values.append(ret[1])
 			# bet_max_values.append(ret[2])
 			result.append(ret)
-			pbar.update()
+			logger.info("{}+{}".format(result,ret))
+			print("{}+{}".format(result,ret))
+
 
 	dill.dump(result, open('ws', 'wb'))
 
@@ -91,4 +114,4 @@ if __name__ == '__main__':
 	plt.savefig('ws.png')
 	plt.show()
 	'''
-	print("program complete in {}".format(time.time() - start))
+	logger.info("program complete in {}".format(time.time() - start))
