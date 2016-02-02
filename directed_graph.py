@@ -526,11 +526,11 @@ class DirectedGraph:
 	def __ltm_round(self, A, neg_A):
 		activated = set()
 		for v in neg_A:
-			sum = 0.0
+			_sum = 0.0
 			for j in self.nodes[v]['list']:
 				if j in A:
-					sum += self.nodes[j]['LTMthreshold']
-			if sum > self.nodes[v]['LTMthreshold']:
+					_sum += self.nodes[j]['LTMthreshold']
+			if _sum > self.nodes[v]['LTMthreshold']:
 				activated.add(v)
 		return activated
 
@@ -582,9 +582,9 @@ class DirectedGraph:
 				if random.random() <= p:
 					graph.add_edge(j, i)
 		'''
-		for edge in itertools.permutations(graph.nodes.keys(), 2):
+		for p_edge in itertools.permutations(graph.nodes.keys(), 2):
 			if random.random() <= p:
-				graph.add_edge(edge[0], edge[1])
+				graph.add_edge(p_edge[0], p_edge[1])
 		return graph
 
 	@staticmethod
